@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { X, AlertCircle, Volume2, VolumeX } from "lucide-react";
 import type { Channel } from "@/lib/m3uParser";
-import mpegts from "mpegts.js";
+import videojs from "video.js";
+import "video.js/dist/video-js.css";
 
 interface PlayerModalProps {
     channel: Channel;
@@ -15,183 +16,88 @@ function proxyUrl(url: string): string {
 }
 
 export default function PlayerModal({ channel, onClose }: PlayerModalProps) {
-    const videoRef = useRef<HTMLVideoElement>(null);
-    const hlsRef = useRef<import("hls.js").default | null>(null);
-    const playerRef = useRef<mpegts.Player | null>(null);
+    const videoRef = useRef<HTMLDivElement>(null);
+    const playerRef = useRef<ReturnType<typeof videojs> | null>(null);
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [muted, setMuted] = useState(false);
-
     const [retryCount, setRetryCount] = useState(0);
 
     useEffect(() => {
-        const video = videoRef.current;
-        if (!video) return;
+        if (!videoRef.current) return;
 
         let loadTimeout: NodeJS.Timeout;
-        let originalUrl = channel.url;
 
-        // Try the XTream Codes HLS trick unless it explicitly failed before
-        // But some TS streams are just raw HTTP TS. If hls.js fails we should fallback.
+        // Determine the stream URL and type
+        let originalUrl = channel.url;
         if (originalUrl.includes("/live/") && originalUrl.endsWith(".ts")) {
             originalUrl = originalUrl.substring(0, originalUrl.length - 3) + ".m3u8";
         }
 
-        let streamUrl = proxyUrl(originalUrl);
+        const streamUrl = proxyUrl(originalUrl);
+        const isHls = originalUrl.endsWith(".m3u8") || originalUrl.includes("/live/") || originalUrl.includes(":8080") || originalUrl.includes(":80/");
 
-        const destroyPlayers = () => {
-            if (hlsRef.current) {
-                hlsRef.current.destroy();
-                hlsRef.current = null;
+        // Create video element
+        const videoElement = document.createElement("video-js");
+        videoElement.classList.add("vjs-big-play-centered", "vjs-fluid");
+        videoRef.current.appendChild(videoElement);
+
+        // Initialize Video.js
+        const player = videojs(videoElement, {
+            controls: true,
+            autoplay: true,
+            preload: "auto",
+            fluid: true,
+            responsive: true,
+            liveui: true,
+            html5: {
+                vhs: {
+                    overrideNative: true,
+                    enableLowInitialPlaylist: true,
+                },
+                nativeAudioTracks: false,
+                nativeVideoTracks: false,
+            },
+            sources: [{
+                src: streamUrl,
+                type: isHls ? "application/x-mpegURL" : "video/mp2t",
+            }],
+        });
+
+        playerRef.current = player;
+
+        // Timeout
+        loadTimeout = setTimeout(() => {
+            setError("Tempo esgotado. O stream pode estar offline ou muito lento.");
+            setLoading(false);
+        }, 20000);
+
+        player.on("loadeddata", () => {
+            clearTimeout(loadTimeout);
+            setLoading(false);
+        });
+
+        player.on("playing", () => {
+            clearTimeout(loadTimeout);
+            setLoading(false);
+        });
+
+        player.on("error", () => {
+            clearTimeout(loadTimeout);
+            const err = player.error();
+            if (err) {
+                setError("Erro ao carregar o canal. O stream pode estar offline.");
             }
-            if (playerRef.current) {
-                playerRef.current.destroy();
-                playerRef.current = null;
-            }
-            if (videoRef.current) {
-                videoRef.current.removeAttribute("src");
-                videoRef.current.load();
-            }
-        };
-
-        const initPlayer = async (forceMpegTs = false) => {
-            setLoading(true);
-            setError(null);
-
-            // Timeout if connection hangs for more than 15s
-            loadTimeout = setTimeout(() => {
-                setError("Tempo esgotado. O stream pode estar offline ou muito lento.");
-                setLoading(false);
-                destroyPlayers();
-            }, 18000);
-
-            const isHls =
-                !forceMpegTs &&
-                (originalUrl.endsWith(".m3u8") ||
-                    originalUrl.includes("/live/") ||
-                    originalUrl.includes(":8080") ||
-                    originalUrl.includes(":80/"));
-
-            if (isHls) {
-                try {
-                    const HlsModule = await import("hls.js");
-                    const Hls = HlsModule.default;
-
-                    if (Hls.isSupported()) {
-                        const hls = new Hls({
-                            enableWorker: true,
-                            lowLatencyMode: true,
-                            maxBufferLength: 30,
-                            maxMaxBufferLength: 60,
-                            xhrSetup: (xhr, url) => {
-                                if (!url.startsWith("/api/proxy")) {
-                                    xhr.open("GET", proxyUrl(url), true);
-                                }
-                            },
-                        });
-
-                        hlsRef.current = hls;
-                        hls.loadSource(streamUrl);
-                        hls.attachMedia(video);
-
-                        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                            clearTimeout(loadTimeout);
-                            setLoading(false);
-                            video.play().catch(() => { });
-                        });
-
-                        hls.on(Hls.Events.ERROR, (_, data) => {
-                            if (data.fatal) {
-                                clearTimeout(loadTimeout);
-                                // If HLS fails and it wasn't explicitly m3u8 in the original source,
-                                // try MPEG-TS as fallback
-                                if (!forceMpegTs && channel.url.endsWith(".ts")) {
-                                    destroyPlayers();
-                                    initPlayer(true); // Retry with mpegts
-                                } else {
-                                    if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-                                        setError("Falha na rede. Verifique se o canal está online.");
-                                    } else {
-                                        setError("Erro ao carregar o canal. Stream offline ou bloqueado.");
-                                    }
-                                    setLoading(false);
-                                }
-                            }
-                        });
-                    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-                        video.src = streamUrl;
-                        video.addEventListener("loadeddata", () => {
-                            clearTimeout(loadTimeout);
-                            setLoading(false);
-                        });
-                        video.addEventListener("error", () => {
-                            clearTimeout(loadTimeout);
-                            setError("Erro ao reproduzir o stream HLS nativo.");
-                            setLoading(false);
-                        });
-                    }
-                } catch {
-                    clearTimeout(loadTimeout);
-                    setError("Erro ao inicializar o HLS.js.");
-                    setLoading(false);
-                }
-            } else {
-                // If it's a TS stream or forced fallback to mpegts
-                if (mpegts.getFeatureList().mseLivePlayback) {
-                    try {
-                        const originalUrlIsTs = channel.url.endsWith(".ts") || forceMpegTs;
-                        streamUrl = proxyUrl(channel.url); // Use the real URL
-
-                        const player = mpegts.createPlayer({
-                            type: originalUrlIsTs ? 'mse' : 'mp4',
-                            isLive: true,
-                            url: streamUrl,
-                        });
-
-                        player.attachMediaElement(video);
-                        player.load();
-                        playerRef.current = player;
-
-                        player.on(mpegts.Events.ERROR, () => {
-                            clearTimeout(loadTimeout);
-                            setError("Erro ao reproduzir o stream TS/MPEG.");
-                            setLoading(false);
-                        });
-
-                        video.addEventListener("loadeddata", () => {
-                            clearTimeout(loadTimeout);
-                            setLoading(false);
-                        });
-
-                        player.play().catch(() => { });
-                    } catch {
-                        clearTimeout(loadTimeout);
-                        setError("Erro ao inicializar MPEG-TS player.");
-                        setLoading(false);
-                    }
-                } else {
-                    // Fallback to basic HTML5 video
-                    video.src = streamUrl;
-                    video.addEventListener("loadeddata", () => {
-                        clearTimeout(loadTimeout);
-                        setLoading(false);
-                    });
-                    video.addEventListener("error", () => {
-                        clearTimeout(loadTimeout);
-                        setError("Erro ao carregar o vídeo nativamente.");
-                        setLoading(false);
-                    });
-                    video.play().catch(() => { });
-                }
-            }
-        };
-
-        initPlayer();
+            setLoading(false);
+        });
 
         return () => {
             clearTimeout(loadTimeout);
-            destroyPlayers();
+            if (playerRef.current) {
+                playerRef.current.dispose();
+                playerRef.current = null;
+            }
         };
     }, [channel.url, retryCount]);
 
@@ -204,66 +110,67 @@ export default function PlayerModal({ channel, onClose }: PlayerModalProps) {
     }, [onClose]);
 
     const toggleMute = () => {
-        if (videoRef.current) {
-            videoRef.current.muted = !videoRef.current.muted;
-            setMuted(!muted);
+        if (playerRef.current) {
+            const isMuted = playerRef.current.muted();
+            playerRef.current.muted(!isMuted);
+            setMuted(!isMuted);
         }
     };
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                <div className="modal-header">
-                    <div className="modal-title">
-                        <span className="live-dot" />
-                        {channel.name}
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-sm p-4 md:p-8 animate-fade-in" onClick={onClose}>
+            <div
+                className="w-full max-w-5xl bg-card border border-border/30 rounded-xl shadow-2xl overflow-hidden flex flex-col animate-slide-up"
+                onClick={(e) => e.stopPropagation()}
+            >
+                {/* Header */}
+                <div className="flex items-center justify-between px-4 py-3 border-b border-border/30 bg-background/80">
+                    <div className="flex items-center gap-3 min-w-0">
+                        <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
+                        <h2 className="text-sm font-semibold text-foreground truncate">{channel.name}</h2>
                         {channel.quality && (
-                            <span className={`quality-badge ${channel.quality.toLowerCase()}`}>
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider shrink-0 ${channel.quality === "FHD" ? "bg-primary/20 text-primary" :
+                                    channel.quality === "HD" ? "bg-blue-500/20 text-blue-400" :
+                                        "bg-muted text-muted-foreground"
+                                }`}>
                                 {channel.quality}
                             </span>
                         )}
                     </div>
-                    <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                    <div className="flex items-center gap-1">
                         <button
-                            className="modal-close"
+                            className="p-1.5 text-muted-foreground hover:text-foreground rounded-full transition-colors"
                             onClick={toggleMute}
-                            title={muted ? "Ativar som" : "Silenciar"}
                         >
                             {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
                         </button>
-                        <button className="modal-close" onClick={onClose} title="Fechar">
+                        <button
+                            className="p-1.5 text-muted-foreground hover:text-foreground rounded-full transition-colors"
+                            onClick={onClose}
+                        >
                             <X size={18} />
                         </button>
                     </div>
                 </div>
 
-                <div className="video-container">
-                    <video ref={videoRef} controls autoPlay playsInline />
+                {/* Video.js Container */}
+                <div className="relative w-full aspect-video bg-black">
+                    <div ref={videoRef} className="w-full h-full" />
 
                     {loading && !error && (
-                        <div className="video-loading">
-                            <div className="spinner" />
-                            Conectando ao stream...
+                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 z-10">
+                            <div className="w-10 h-10 border-3 border-muted border-t-primary rounded-full animate-spin mb-3" />
+                            <div className="text-xs font-medium text-primary animate-pulse">Conectando...</div>
                         </div>
                     )}
 
                     {error && (
-                        <div className="video-error">
-                            <AlertCircle size={36} />
-                            <div>{error}</div>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 p-6 text-center z-10">
+                            <AlertCircle size={40} className="text-destructive mb-3" />
+                            <div className="text-sm font-medium text-foreground mb-4 max-w-sm">{error}</div>
                             <button
                                 onClick={() => setRetryCount(c => c + 1)}
-                                style={{
-                                    marginTop: "12px",
-                                    padding: "8px 20px",
-                                    background: "var(--primary)",
-                                    color: "#000",
-                                    border: "none",
-                                    borderRadius: "8px",
-                                    cursor: "pointer",
-                                    fontWeight: 600,
-                                    fontSize: "14px",
-                                }}
+                                className="px-5 py-2 bg-foreground text-background text-sm font-semibold rounded-lg hover:opacity-90 transition-opacity"
                             >
                                 Tentar novamente
                             </button>
@@ -271,19 +178,10 @@ export default function PlayerModal({ channel, onClose }: PlayerModalProps) {
                     )}
                 </div>
 
-                <div
-                    style={{
-                        padding: "12px 20px",
-                        borderTop: "1px solid var(--border)",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        fontSize: "13px",
-                        color: "var(--text-secondary)",
-                    }}
-                >
+                {/* Footer */}
+                <div className="flex items-center justify-between px-4 py-2.5 bg-background/80 text-xs text-muted-foreground border-t border-border/30">
                     <span>{channel.group}</span>
-                    <span style={{ opacity: 0.5 }}>AO VIVO</span>
+                    <span className="font-mono tracking-widest opacity-50">AO VIVO</span>
                 </div>
             </div>
         </div>

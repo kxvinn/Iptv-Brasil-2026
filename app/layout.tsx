@@ -1,12 +1,20 @@
 import type { Metadata } from "next";
+import { Amethysta } from "next/font/google";
 import "./globals.css";
-import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
+import SmoothScroll from "@/components/SmoothCursor";
 
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+const amethysta = Amethysta({
+  weight: "400",
+  subsets: ["latin"],
+  variable: "--font-amethysta",
+});
 
 export const metadata: Metadata = {
   title: "IPTV Brasil 2026 — Canais ao Vivo",
+  icons: {
+    icon: "/favicon.png",
+  },
   description:
     "Acesse centenas de canais brasileiros ao vivo: Globo, SBT, Record, Band, esportes, notícias e muito mais. Gratuito e organizado.",
   keywords: [
@@ -33,8 +41,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-BR" className={cn("font-sans", geist.variable)}>
-      <body>{children}</body>
+    <html lang="pt-BR" suppressHydrationWarning className={cn(amethysta.variable)}>
+      <body>
+        <SmoothScroll>{children}</SmoothScroll>
+      </body>
     </html>
   );
 }

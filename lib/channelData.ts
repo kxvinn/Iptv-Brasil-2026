@@ -13,23 +13,29 @@ export function getAllChannels(): Channel[] {
     const allChannels: Channel[] = [];
     const seenIds = new Set<string>();
 
-    try {
-        const filePath = path.join(listDir, "CanaisBR01.m3u8");
-        const stat = fs.statSync(filePath);
-        if (stat.size <= MAX_FILE_SIZE) {
-            const content = fs.readFileSync(filePath, "utf-8");
-            const parsed = parseM3U(content);
+    const filesToLoad = ["CanaisIPTV.m3u", "CanaisBR01.m3u8"];
 
-            for (const ch of parsed) {
-                const key = `${ch.name}||${ch.url}`;
-                if (!seenIds.has(key)) {
-                    seenIds.add(key);
-                    allChannels.push(ch);
+    for (const fileName of filesToLoad) {
+        try {
+            const filePath = path.join(listDir, fileName);
+            if (!fs.existsSync(filePath)) continue;
+
+            const stat = fs.statSync(filePath);
+            if (stat.size <= MAX_FILE_SIZE) {
+                const content = fs.readFileSync(filePath, "utf-8");
+                const parsed = parseM3U(content);
+
+                for (const ch of parsed) {
+                    const key = `${ch.name}||${ch.url}`;
+                    if (!seenIds.has(key)) {
+                        seenIds.add(key);
+                        allChannels.push(ch);
+                    }
                 }
             }
+        } catch {
+            // file not found or unreadable
         }
-    } catch {
-        // file not found or unreadable
     }
 
     cachedChannels = allChannels;
@@ -66,6 +72,9 @@ export function getGroups(): { name: string; count: number; icon: string }[] {
         "CANAIS | EVANGÉLICOS": "⛪",
         "Canais | Religiosos": "🙏",
         "Canais | BBB": "🏠",
+        "ANIMES": "💮",
+        "CANAIS | ANIMES": "💮",
+        "Animes": "💮",
     };
 
     return Array.from(groupMap.entries())
