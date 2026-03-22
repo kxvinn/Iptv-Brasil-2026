@@ -12,7 +12,7 @@ const fadeUp = {
     visible: (i: number) => ({
         opacity: 1,
         y: 0,
-        transition: { duration: 0.6, delay: i * 0.1, ease: [0.25, 0.46, 0.45, 0.94] },
+        transition: { duration: 0.6, delay: i * 0.1, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] },
     }),
 };
 
@@ -26,7 +26,7 @@ const scaleIn = {
     visible: (i: number) => ({
         opacity: 1,
         scale: 1,
-        transition: { duration: 0.5, delay: i * 0.12, ease: "easeOut" },
+        transition: { duration: 0.5, delay: i * 0.12, ease: "easeOut" as any },
     }),
 };
 
@@ -57,9 +57,26 @@ export default function LandingPage() {
 
             {/* Hero Section */}
             <section className="relative min-h-screen flex flex-col items-center justify-center px-6 pt-20">
+                {/* Background Video */}
+                <div className="absolute inset-0 w-full h-full z-0 pointer-events-none overflow-hidden">
+                    <video
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        className="absolute inset-0 w-full h-full object-cover opacity-30"
+                        style={{
+                            maskImage: 'linear-gradient(to bottom, black 40%, transparent 100%)',
+                            WebkitMaskImage: 'linear-gradient(to bottom, black 40%, transparent 100%)'
+                        }}
+                    >
+                        <source src="/videolp.mp4" type="video/mp4" />
+                    </video>
+                </div>
+
                 {/* BG effects */}
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[600px] bg-primary/6 rounded-full blur-[140px] pointer-events-none" />
-                <div className="absolute bottom-20 right-10 w-[350px] h-[350px] bg-[#D1DABE]/4 rounded-full blur-[100px] pointer-events-none" />
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[600px] bg-primary/10 rounded-full blur-[140px] pointer-events-none z-0" />
+                <div className="absolute bottom-20 right-10 w-[350px] h-[350px] bg-[#D1DABE]/5 rounded-full blur-[100px] pointer-events-none z-0" />
 
                 <div className="relative z-10 text-center max-w-5xl mx-auto">
                     {/* Badge */}

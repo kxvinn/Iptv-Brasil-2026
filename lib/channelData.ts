@@ -85,3 +85,10 @@ export function getGroups(): { name: string; count: number; icon: string }[] {
         }))
         .sort((a, b) => b.count - a.count);
 }
+
+import { getCategoryForGroup, type TopLevelCategory } from "./categories";
+
+export function getGroupsByCategory(category: TopLevelCategory): { name: string; count: number; icon: string }[] {
+    return getGroups().filter(g => getCategoryForGroup(g.name) === category);
+}
+
