@@ -1,36 +1,31 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+<img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExYXdjOTl0a2gwbmdxa3Z3N2owY2dzc2YxaW02NnN5czVhY2t3NDI2bSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l2SpKXgonQQYiw7hC/giphy.gif" alt="Computer man" style="width:500px;height:300px;">
 
-## Getting Started
+# IPTV Brasil 2026 - Canais, Filmes e Séries
+### <i class="fa-brands fa-pix">
+"Só tem o direito de criticar aquele que pretende ajudar." - Abraham Lincoln
+### Estou disponibilizando os programas que uso na Tv box e no celular (Android).
 
-First, run the development server:
+* 👉 <a href="https://www.mediafire.com/file/4j3fkiyxbmzqlsc/IPTV_Smarters_Pro_v4.0.3_.apk/file" download="filename">Clique aqui para baixar no Android-Versão 2024 Premium</a>
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+* 👉 <a href="https://tinyurl.com/ycy6wfyp" download="filename">Clique aqui para baixar no Windows</a> 
+* 👉 <a href="https://github.com/gabrielsaimo/Saimo-TV/releases/download/Beta-Tv-box-v06/Beta-Tv-box-v07.apk" download="filename">Clique aqui para baixar Aplicativo Saimo Tv Box</a> 
+### <a href="https://www.virustotal.com" download="filename">Conferir a confiabilidade dos aplicativos no VirusTotal</a> 
+#
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+# 👍 Contribuições 
+ Se você gosta dos meus projetos, considere fazer uma pequena doação.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+ Chave pix ❖  {<a href="LINK" download="filename">6cbc20f2-8b99-4b60-9b76-292f377fa27d</a>}
+ 
+##
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+ ### <i class="fa-brands fa-pix">
+⚠️ Atenção: <b>Todas as ligações de streams disponibilizados nas listas foram retiradas da internet. A comunidade apenas as organiza, disponibiliza e partilha. Não detemos qualquer servidor e/ou trasmitimos ou re-emitimos qualquer tipo de sinal</b>. 
 
-## Learn More
 
-To learn more about Next.js, take a look at the following resources:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-## Deploy on Vercel
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
