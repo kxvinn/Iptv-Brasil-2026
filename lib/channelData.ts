@@ -13,7 +13,7 @@ export function getAllChannels(): Channel[] {
     const allChannels: Channel[] = [];
     const seenIds = new Set<string>();
 
-    const filesToLoad = ["CanaisIPTV.m3u", "CanaisBR01.m3u8"];
+    const filesToLoad = ["novalista.m3u8"];
 
     for (const fileName of filesToLoad) {
         try {
